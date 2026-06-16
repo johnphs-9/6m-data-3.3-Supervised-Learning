@@ -77,6 +77,7 @@ section::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;bac
 .toggle-btn{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:8px 12px;background:transparent;border:1px solid var(--rule);cursor:pointer;color:var(--ink-2)}
 .toggle-btn.on{background:var(--ink);color:var(--paper)}
 .toggle-btn:hover:not(.on){background:var(--paper-3)}
+.csv-table td.changed{background:#fef9c3;outline:2px solid #d97706}
 .prep-aside{border:1px solid var(--rule);background:var(--paper-2);padding:24px;display:flex;flex-direction:column;gap:14px;position:relative}
 .prep-aside::before{content:"";position:absolute;left:-1px;top:-1px;width:42px;height:42px;background:var(--accent);clip-path:polygon(0 0,100% 0,0 100%)}
 .prep-aside h3{font-family:'Open Sans',sans-serif;font-style:italic;font-weight:300;font-size:32px;letter-spacing:-.02em;margin:0;line-height:1}
@@ -328,7 +329,7 @@ h3 em,h3 strong{color:var(--ntu-crimson)!important;font-style:normal!important;f
   <div class="cover-grid">
     <div>
       <div class="label" style="color:var(--accent)">Chapter Three &middot; northstar_churn.csv</div>
-      <h1>Ten thousand customers,<br>and a column called <em>churned.</em></h1>
+      <h1>Ten thousand customers, <br>and a column called <em>churned.</em></h1>
       <p class="cover-lede"><span class="dropcap">M</span>arcus sets the brief on Monday morning. Off-the-shelf is over &mdash; can Sarah train NorthStar's own model on NorthStar's own data? She opens <span class="mono">northstar_churn.csv</span>: 10,000 customers, 11 features, one target. By Friday she will hold three new tools: a clean <em>preprocessing pipeline</em>, <em>cross-validated</em> training, and a <em>threshold</em> chosen by the business, not the math.</p>
     </div>
     <div class="cover-side">
@@ -357,8 +358,18 @@ h3 em,h3 strong{color:var(--ntu-crimson)!important;font-style:normal!important;f
     </div>
   </div>
 
+  <div style="background:var(--bg-off);border:1px solid var(--border);border-left:4px solid var(--ntu-crimson);padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:.95rem;color:var(--text-body);line-height:1.65">
+    <strong>Why must these be fixed before training?</strong> Most ML algorithms cannot handle missing values — they will throw an error or produce wrong results silently. Unscaled features give an unfair advantage to columns with large numbers: a spend of £2,000 will dominate a tenure of 24 months in distance-based calculations. Text categories like "premium" are meaningless to a mathematical model — they must be converted to numbers before any arithmetic can happen.
+  </div>
+
   <div class="prep">
     <div>
+      <div class="prep-ctrl">
+        <button class="toggle-btn" data-step="impute">1 &middot; Impute missing</button>
+        <button class="toggle-btn" data-step="onehot">2 &middot; One-hot encode</button>
+        <button class="toggle-btn" data-step="scale">3 &middot; Scale numerics</button>
+        <button class="toggle-btn" data-step="flag">4 &middot; Was-missing flag</button>
+      </div>
       <div class="csv">
         <div class="csv-head"><span>northstar_churn.csv &middot; head(5)</span><span id="prepStage">raw &mdash; nothing applied</span></div>
         <table class="csv-table">
@@ -368,12 +379,6 @@ h3 em,h3 strong{color:var(--ntu-crimson)!important;font-style:normal!important;f
           <tbody id="csvBody"></tbody>
         </table>
       </div>
-      <div class="prep-ctrl">
-        <button class="toggle-btn" data-step="impute">1 &middot; Impute missing</button>
-        <button class="toggle-btn" data-step="onehot">2 &middot; One-hot encode</button>
-        <button class="toggle-btn" data-step="scale">3 &middot; Scale numerics</button>
-        <button class="toggle-btn" data-step="flag">4 &middot; Was-missing flag</button>
-      </div>
     </div>
 
     <aside class="prep-aside">
@@ -381,7 +386,7 @@ h3 em,h3 strong{color:var(--ntu-crimson)!important;font-style:normal!important;f
       <h3>From <em>messy CSV</em> to a matrix.</h3>
       <div class="step" id="stepImpute"><div class="ix">01</div><div><b>Impute missing</b> &middot; Replace <span class="mono">NaN</span> with the median. For categoricals, use the mode &mdash; or a literal "MISSING" category.</div></div>
       <div class="step" id="stepOneHot"><div class="ix">02</div><div><b>One-hot encode</b> &middot; "tier = premium" becomes three 0/1 columns. Don't label-encode unordered categories &mdash; the model would invent order that isn't there.</div></div>
-      <div class="step" id="stepScale"><div class="ix">03</div><div><b>Z-score numericals</b> &middot; Subtract the mean, divide by sd. Linear &amp; distance models need this; tree models don't &mdash; but skip explicitly.</div></div>
+      <div class="step" id="stepScale"><div class="ix">03</div><div><b>Z-score numericals</b> &middot; Subtract the mean, divide by sd. Linear &amp; distance models need this; tree-based models (like Random Forest) don't &mdash; but always make this choice deliberately, not by accident.</div></div>
       <div class="step" id="stepFlag"><div class="ix">04</div><div><b>Was-missing flags</b> &middot; If missingness is informative (a non-reviewer behaves differently), keep the signal with a 0/1 indicator column.</div></div>
       <p style="font-family:'Newsreader',serif;font-style:italic;color:var(--ink-2);font-size:15px;margin:6px 0 0;line-height:1.5">Every one of these becomes a layer in your sklearn pipeline &mdash; not a manual notebook cell.</p>
     </aside>
@@ -470,7 +475,7 @@ model.fit(X_train, y_train)   <span class="c"># prep is re-fit per CV fold autom
 
     <div class="tv-card">
       <h3>K-fold <em>cross-validation.</em></h3>
-      <p style="font-family:'Newsreader',serif;color:var(--ink-2);font-size:15.5px;margin:0">Each row gets to be in validation exactly once. Preprocessing is re-fit per fold &mdash; never trained on its own validator.</p>
+      <p style="font-family:'Newsreader',serif;color:var(--ink-2);font-size:15.5px;margin:0">Every customer appears in the test group exactly once. The data preparation steps are also redone cleanly for each fold &mdash; so there is no information leakage between training and testing.</p>
       <div class="kfold">
         <div class="kfold-row"><div>Fold 1</div><div class="kfold-bar"><div class="val">val</div><div class="tr">tr</div><div class="tr">tr</div><div class="tr">tr</div><div class="tr">tr</div></div><div style="text-align:right">87.8%</div></div>
         <div class="kfold-row"><div>Fold 2</div><div class="kfold-bar"><div class="tr">tr</div><div class="val">val</div><div class="tr">tr</div><div class="tr">tr</div><div class="tr">tr</div></div><div style="text-align:right">89.5%</div></div>
@@ -498,15 +503,19 @@ model.fit(X_train, y_train)   <span class="c"># prep is re-fit per CV fold autom
     </div>
   </div>
 
+  <div style="background:var(--bg-off);border:1px solid var(--border);border-left:4px solid var(--ntu-blue);padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:.95rem;color:var(--text-body);line-height:1.65">
+    <strong>What does the model output?</strong> Logistic regression does not just predict "churn" or "stay" — it outputs a <em>probability</em> between 0 and 1 for each customer. A score of 0.73 means the model thinks there is a 73% chance this customer will churn. The <strong>threshold</strong> is the cutoff: customers scoring <em>above</em> the threshold are flagged as potential churners; those below are predicted to stay. The default 0.5 is just a starting point — moving it changes the balance between catching more churners and making unnecessary calls.
+  </div>
+
   <div class="cm">
     <div class="strip">
       <div class="strip-head"><span>Model output &middot; 200 held-out customers</span><span id="thrLabel">threshold = 0.50</span></div>
       <svg class="strip-svg" id="stripSvg" viewBox="0 0 600 170" preserveAspectRatio="none"></svg>
       <div class="thr-row">
         <input type="range" id="thrSlider" min="0" max="100" value="50">
-        <div class="thr-readout"><span>&larr; flag fewer &middot; high precision</span><span>flag more &middot; high recall &rarr;</span></div>
+        <div class="thr-readout"><span>&larr; flag more &middot; high recall</span><span>flag fewer &middot; high precision &rarr;</span></div>
       </div>
-      <p style="font-family:'Newsreader',serif;font-style:italic;color:var(--ink-2);font-size:14.5px;margin:14px 0 0;line-height:1.5">Each tick is one customer. <span style="color:var(--accent);font-weight:700">Vermillion</span> = will actually churn. <span style="color:var(--teal);font-weight:700">Teal</span> = will not. The vertical line is the threshold.</p>
+      <p style="font-family:'Newsreader',serif;font-style:italic;color:var(--ink-2);font-size:14.5px;margin:14px 0 0;line-height:1.5">Each tick is one customer. <span style="color:var(--accent);font-weight:700">Red</span> = will actually churn. <span style="color:var(--teal);font-weight:700">Teal</span> = will not. Customers to the <em>right</em> of the threshold line are flagged as potential churners.</p>
     </div>
 
     <div>
@@ -536,27 +545,23 @@ model.fit(X_train, y_train)   <span class="c"># prep is re-fit per CV fold autom
     <div class="section-num">V.</div>
     <div class="section-title">
       <div class="label">A business decision</div>
-      <h2>0.5 is rarely right. <em>Capacity</em> and <em>cost</em> decide.</h2>
-      <p class="deck">The retention team can call 80 customers a week. A missed churner costs &pound;240 of lifetime value; a wasted call costs &pound;15 of analyst time. The right threshold is the one that fits both.</p>
+      <h2>0.5 is rarely right. <em>Capacity</em> decides.</h2>
+      <p class="deck">The model gives every customer a churn probability from 0 to 1. The threshold decides who gets a call. Your retention team has a fixed weekly capacity &mdash; the threshold should be set to flag as many high-risk customers as possible while staying within that limit.</p>
     </div>
+  </div>
+
+  <div style="background:var(--bg-off);border:1px solid var(--border);border-left:4px solid var(--ntu-blue);padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:.95rem;color:var(--text-body);line-height:1.65">
+    <strong>How the recommended threshold is derived:</strong> The slider below sets your weekly capacity. The tool then scans every threshold from 0 to 1 and finds the lowest threshold where the number of flagged customers stays within your capacity. Lower thresholds flag more customers (higher recall); the capacity constraint is what stops the threshold from going too low.
   </div>
 
   <div class="biz">
     <div class="biz-card">
-      <h3>Two business inputs</h3>
+      <h3>One business input</h3>
       <label>Weekly capacity &middot; <span class="mono" id="capV">80 calls</span></label>
       <input type="range" id="capSlider" min="20" max="300" step="5" value="80">
-      <div class="biz-vals"><span>20</span><span>300</span></div>
+      <div class="biz-vals"><span>20 calls</span><span>300 calls</span></div>
 
-      <label style="margin-top:18px">FN cost &middot; missed churner &middot; <span class="mono" id="fnCostV">&pound;240</span></label>
-      <input type="range" id="fnCost" min="40" max="600" step="10" value="240">
-      <div class="biz-vals"><span>&pound;40</span><span>&pound;600</span></div>
-
-      <label style="margin-top:18px">FP cost &middot; wasted call &middot; <span class="mono" id="fpCostV">&pound;15</span></label>
-      <input type="range" id="fpCost" min="2" max="120" step="1" value="15">
-      <div class="biz-vals"><span>&pound;2</span><span>&pound;120</span></div>
-
-      <p style="font-family:'Newsreader',serif;font-style:italic;color:var(--ink-2);font-size:15px;margin-top:18px;line-height:1.5">Capacity caps flag volume. Cost ratio drives where the boundary should sit &mdash; cheap mistakes get more headroom, expensive ones drive the threshold up or down.</p>
+      <p style="font-family:'Newsreader',serif;font-style:italic;color:var(--ink-2);font-size:15px;margin-top:18px;line-height:1.5">How many customers can your retention team realistically contact each week? Drag to adjust. The threshold updates automatically to match your capacity.</p>
     </div>
 
     <div class="biz-output">
@@ -565,9 +570,6 @@ model.fit(X_train, y_train)   <span class="c"># prep is re-fit per CV fold autom
       <div class="biz-cap">flags / week: <b id="bizFlags">&mdash;</b> &middot; capacity: <b id="bizCap">&mdash;</b></div>
       <div class="biz-verdict" id="bizVerdict">&mdash;</div>
       <div class="biz-blurb" id="bizBlurb">&mdash;</div>
-      <div style="border-top:1px dotted var(--rule);margin-top:14px;padding-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;color:var(--ink-2)">
-        <div>Expected weekly cost &middot; <b id="bizCost" style="color:var(--accent)">&mdash;</b></div>
-      </div>
     </div>
   </div>
 </section>
@@ -735,6 +737,10 @@ model.fit(X_train, y_train)   <span class="c"># prep is re-fit per CV fold autom
   function z(v, m, s){ return ((v-m)/s).toFixed(2); }
 
   function render(){
+    // Snapshot previous cell text for change highlighting
+    const prevCells = [];
+    const prevColCount = document.querySelectorAll('#csvBody tr:first-child td').length || 0;
+    document.querySelectorAll('#csvBody td').forEach(td => prevCells.push(td.textContent.trim()));
     let cols;
     if (state.onehot){
       cols = ['tier=free','tier=basic','tier=premium','avg_spend','tenure_m','reviews'];
@@ -801,6 +807,16 @@ model.fit(X_train, y_train)   <span class="c"># prep is re-fit per CV fold autom
     const map = { stepImpute:'impute', stepOneHot:'onehot', stepScale:'scale', stepFlag:'flag' };
     for (const [id,key] of Object.entries(map)){
       document.getElementById(id).classList.toggle('done', state[key]);
+    }
+    // Highlight cells that changed (only when column count is unchanged)
+    const newTds = document.querySelectorAll('#csvBody td');
+    const newColCount = cols.length;
+    if (prevCells.length > 0 && newColCount === prevColCount) {
+      newTds.forEach((td, i) => {
+        if (i < prevCells.length && td.textContent.trim() !== prevCells[i]) {
+          td.classList.add('changed');
+        }
+      });
     }
   }
   document.querySelectorAll('.toggle-btn').forEach(b => b.addEventListener('click', () => {
@@ -937,63 +953,48 @@ model.fit(X_train, y_train)   <span class="c"># prep is re-fit per CV fold autom
 
   /* §V · Business threshold */
   const capSlider = document.getElementById('capSlider');
-  const fnCost = document.getElementById('fnCost');
-  const fpCost = document.getElementById('fpCost');
   const capV = document.getElementById('capV');
-  const fnV  = document.getElementById('fnCostV');
-  const fpV  = document.getElementById('fpCostV');
   const bizThr = document.getElementById('bizThr');
   const bizFlags = document.getElementById('bizFlags');
   const bizCap = document.getElementById('bizCap');
   const bizVerdict = document.getElementById('bizVerdict');
   const bizBlurb = document.getElementById('bizBlurb');
-  const bizCost = document.getElementById('bizCost');
 
   function recompute(){
     const cap = parseInt(capSlider.value,10);
-    const fn = parseFloat(fnCost.value);
-    const fp = parseFloat(fpCost.value);
     capV.textContent = cap + ' calls';
-    fnV.innerHTML = '&pound;' + fn;
-    fpV.innerHTML = '&pound;' + fp;
 
-    let best = { t: 0.5, cost: Infinity, flags: 0 };
-    for (let i=0; i<=100; i++){
-      const t = i/100;
-      const {TP,FP,FN,TN} = confusion(t);
+    // Find lowest threshold where flags <= capacity (maximise recall within capacity)
+    let rec_t = 1.0;
+    for (let i = 0; i <= 100; i++){
+      const t = i / 100;
+      const {TP, FP} = confusion(t);
       const flags = TP + FP;
-      const cost = FN*fn + FP*fp;
-      const overflow = Math.max(0, flags - cap) * fp * 1.2;
-      const total = cost + overflow;
-      if (total < best.cost){
-        best = { t, cost: total, flags };
-      }
+      if (flags <= cap){ rec_t = t; break; }
     }
 
-    bizThr.textContent = best.t.toFixed(2);
-    bizFlags.textContent = best.flags;
-    bizCap.textContent = cap;
-    bizCost.innerHTML = '&pound;' + best.cost.toFixed(0);
+    const {TP, FP, FN, TN} = confusion(rec_t);
+    const flags = TP + FP;
 
-    let h='', b='';
-    const ratio = fn/fp;
-    if (best.flags > cap){
-      h = "<em>Over capacity.</em> Raise the threshold.";
-      b = "Even the cost-minimising threshold flags more cases than the team can handle. Either raise capacity, or accept the threshold will be pushed up &mdash; some missed churners is the price.";
-    } else if (ratio > 20){
-      h = "FN expensive. <em>Cast a wider net.</em>";
-      b = "Missed churners cost &asymp; " + ratio.toFixed(0) + "&times; a wasted call. A lower threshold flags more &mdash; precision drops, but recall climbs and total cost falls.";
-    } else if (ratio < 2){
-      h = "FP painful. <em>Be selective.</em>";
-      b = "Wasted calls are nearly as expensive as missed churners. Push the threshold higher &mdash; act only on the most confident signals.";
+    bizThr.textContent = rec_t.toFixed(2);
+    bizFlags.textContent = flags;
+    bizCap.textContent = cap;
+
+    let h = '', b = '';
+    if (flags === 0 && rec_t === 1.0){
+      h = "<em>Capacity too low.</em> No threshold fits.";
+      b = "Even at threshold 1.0 the model still flags more customers than your team can handle. Consider raising your weekly capacity.";
+    } else if (flags < cap * 0.5){
+      h = "<em>Well within capacity.</em>";
+      b = "Customers with a churn probability above <b>" + rec_t.toFixed(2) + "</b> are flagged as potential churners — that is <b>" + flags + "</b> customers this week, well within your " + cap + "-call capacity. You could lower the threshold further to catch more at-risk customers.";
     } else {
-      h = "Balanced. <em>Fits the team.</em>";
-      b = "Capacity matches what the model surfaces here, and the FN/FP cost ratio is moderate. This is the kind of operating point you can defend in a stand-up.";
+      h = "Threshold set. <em>Flag " + flags + " customers.</em>";
+      b = "Customers with a churn probability above <b>" + rec_t.toFixed(2) + "</b> are flagged as potential churners. This uses <b>" + flags + "</b> of your " + cap + " available calls — maximising coverage while staying within capacity.";
     }
     bizVerdict.innerHTML = h;
     bizBlurb.innerHTML = b;
   }
-  [capSlider, fnCost, fpCost].forEach(el => el.addEventListener('input', recompute));
+  capSlider.addEventListener('input', recompute);
   recompute();
 })();
 
